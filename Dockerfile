@@ -4,14 +4,14 @@ MAINTAINER Josh Perryman <josh@experoinc.com>
 LABEL Description="TinkerPop Gremlin Server and Gremlin Console"
 
 # This Dockerfile only supports Apache TinkerPop 3.3.0 or higher
-ENV APACHE_DOWNLOAD_URL http://mirrors.ibiblio.org
+ENV APACHE_DOWNLOAD_URL https://archive.apache.org/dist
 ENV TINKERPOP_VERSION 3.3.1
 ENV GREMLIN_SERVER_PATH /opt/apache-tinkerpop-gremlin-server-$TINKERPOP_VERSION
 ENV GREMLIN_CONSOLE_PATH /opt/apache-tinkerpop-gremlin-console-$TINKERPOP_VERSION
 
 # Download TinkerPop binaries
-ADD $APACHE_DOWNLOAD_URL/apache/tinkerpop/$TINKERPOP_VERSION/apache-tinkerpop-gremlin-console-$TINKERPOP_VERSION-bin.zip /home/
-ADD $APACHE_DOWNLOAD_URL/apache/tinkerpop/$TINKERPOP_VERSION/apache-tinkerpop-gremlin-server-$TINKERPOP_VERSION-bin.zip /home/
+ADD $APACHE_DOWNLOAD_URL/tinkerpop/$TINKERPOP_VERSION/apache-tinkerpop-gremlin-console-$TINKERPOP_VERSION-bin.zip /home/
+ADD $APACHE_DOWNLOAD_URL/tinkerpop/$TINKERPOP_VERSION/apache-tinkerpop-gremlin-server-$TINKERPOP_VERSION-bin.zip /home/
 
 # Alternatively, Apache TinkerPop zip files can be downloaded to the local directory
 # COPY apache-tinkerpop-gremlin-console-$TINKERPOP_VERSION-bin.zip /home/
@@ -49,6 +49,8 @@ COPY generate-citations.groovy $GREMLIN_SERVER_PATH/scripts/
 COPY generate-aironly.groovy $GREMLIN_SERVER_PATH/scripts/
 COPY generate-all.groovy $GREMLIN_SERVER_PATH/scripts/
 
+COPY install-cypher-plugin.groovy /home/
+
 # Add the YAML files to the Gremlin Server conf directory
 COPY gremlin-server-citations.yaml $GREMLIN_SERVER_PATH/conf/
 COPY gremlin-server-aironly.yaml $GREMLIN_SERVER_PATH/conf/
@@ -66,6 +68,19 @@ ENV GREMLIN_YAML $GREMLIN_SERVER_PATH/conf/gremlin-server-all.yaml
 # set gremlin-console init script start in console
 COPY init.groovy $GREMLIN_CONSOLE_PATH/conf/
 COPY start.sh $GREMLIN_CONSOLE_PATH
+
+WORKDIR $GREMLIN_SERVER_PATH
+
+# install Cypher plugin
+RUN bin/gremlin-server.sh install org.opencypher.gremlin cypher-gremlin-server-plugin 0.9.4
+RUN $GREMLIN_CONSOLE_PATH/bin/gremlin.sh -e /home/install-cypher-plugin.groovy
+# rm script
+RUN rm /home/install-cypher-plugin.groovy
+
+# Configure gremlin for python
+RUN bin/gremlin-server.sh install org.apache.tinkerpop gremlin-python 3.3.1
+
+EXPOSE 8182
 
 # Set starting directory and start the start.sh script
 # See the FAQ section in the README.md for why I use a start script
