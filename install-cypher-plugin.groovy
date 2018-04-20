@@ -1,0 +1,1 @@
+:install org.opencypher.gremlin cypher-gremlin-console-plugin 0.9.4
